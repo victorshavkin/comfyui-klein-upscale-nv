@@ -32,7 +32,11 @@ RUN uv pip install comfy-cli pip setuptools wheel
 # Install ComfyUI (latest). Torch gets overridden to cu130 right after.
 RUN /usr/bin/yes | comfy --workspace /comfyui install --version latest --nvidia
 
-# Pin Torch 2.9.0 / CUDA 13.0
+# Ensure ALL ComfyUI runtime deps are present (comfy-cli can miss some, e.g. the new
+# asset-DB needs sqlalchemy/alembic). This may pull a default torch — overridden next.
+RUN uv pip install -r /comfyui/requirements.txt
+
+# Pin Torch 2.9.0 / CUDA 13.0 (after requirements, so it wins)
 RUN uv pip install --force-reinstall \
     torch==2.9.0 torchvision torchaudio --index-url https://download.pytorch.org/whl/cu130
 
