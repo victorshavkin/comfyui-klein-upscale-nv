@@ -43,11 +43,11 @@ RUN uv pip install --force-reinstall \
     torch==2.9.0 torchvision==0.24.0 torchaudio==2.9.0 \
     --index-url https://download.pytorch.org/whl/cu130
 
-# SageAttention from source (PyPI only has 1.0.x; need 2.x for Blackwell sm_120).
-# nvcc comes from the cuda devel base image.
+# SageAttention 2.2.0 from source — exact version that works in the user's local
+# setup (sageattention-2.2.0.post3+cu130torch2.9). PyPI only has 1.0.x; build the
+# v2.2.0 git tag. nvcc comes from the cuda devel base; sm_120 for Blackwell.
 ENV TORCH_CUDA_ARCH_LIST="12.0"
-RUN uv pip install --no-build-isolation git+https://github.com/thu-ml/SageAttention.git \
-    || (echo "WARN: SageAttention source build failed, falling back to PyPI" >&2 && uv pip install sageattention)
+RUN uv pip install --no-build-isolation git+https://github.com/thu-ml/SageAttention.git@v2.2.0
 
 # Network-volume model path mapping (unet/clip/vae/upscale_models -> /runpod-volume/models/...)
 WORKDIR /comfyui
