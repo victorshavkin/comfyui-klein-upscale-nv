@@ -1,0 +1,387 @@
+{
+ "104": {
+  "inputs": {
+   "image": [
+    "192",
+    0
+   ]
+  },
+  "class_type": "GetImageSizeAndCount",
+  "_meta": {
+   "title": "GetImageSizeAndCount"
+  }
+ },
+ "110": {
+  "inputs": {
+   "model_name": "4x_Struzan.pth"
+  },
+  "class_type": "UpscaleModelLoader",
+  "_meta": {
+   "title": "UpscaleModelLoader"
+  }
+ },
+ "111": {
+  "inputs": {
+   "image": [
+    "109",
+    0
+   ],
+   "dac_data": [
+    "109",
+    1
+   ],
+   "tile": 0
+  },
+  "class_type": "Divide Image and Select Tile",
+  "_meta": {
+   "title": "Divide Image and Select Tile"
+  }
+ },
+ "101": {
+  "inputs": {
+   "images": [
+    "24",
+    0
+   ],
+   "dac_data": [
+    "109",
+    1
+   ]
+  },
+  "class_type": "Combine Tiles",
+  "_meta": {
+   "title": "Combine Tiles"
+  }
+ },
+ "103": {
+  "inputs": {
+   "a": [
+    "104",
+    1
+   ],
+   "b": [
+    "107",
+    0
+   ],
+   "expression": "b/a"
+  },
+  "class_type": "MathExpression|pysssss",
+  "_meta": {
+   "title": "MathExpression|pysssss"
+  }
+ },
+ "24": {
+  "inputs": {
+   "samples": [
+    "152",
+    0
+   ],
+   "vae": [
+    "27",
+    0
+   ]
+  },
+  "class_type": "VAEDecode",
+  "_meta": {
+   "title": "VAEDecode"
+  }
+ },
+ "28": {
+  "inputs": {
+   "model": [
+    "9",
+    0
+   ],
+   "sage_attention": "auto",
+   "allow_compile": false
+  },
+  "class_type": "PathchSageAttentionKJ",
+  "_meta": {
+   "title": "PathchSageAttentionKJ"
+  }
+ },
+ "37": {
+  "inputs": {
+   "conditioning": [
+    "18",
+    0
+   ],
+   "latent": [
+    "35",
+    0
+   ]
+  },
+  "class_type": "ReferenceLatent",
+  "_meta": {
+   "title": "ReferenceLatent"
+  }
+ },
+ "35": {
+  "inputs": {
+   "pixels": [
+    "111",
+    0
+   ],
+   "vae": [
+    "27",
+    0
+   ]
+  },
+  "class_type": "VAEEncode",
+  "_meta": {
+   "title": "VAEEncode"
+  }
+ },
+ "18": {
+  "inputs": {
+   "clip": [
+    "26",
+    0
+   ],
+   "text": "Make the photo photorealistic and detailed, natural color\n\n"
+  },
+  "class_type": "CLIPTextEncode",
+  "_meta": {
+   "title": "CLIP Text Encode (Positive Prompt)"
+  }
+ },
+ "152": {
+  "inputs": {
+   "model": [
+    "28",
+    0
+   ],
+   "positive": [
+    "37",
+    0
+   ],
+   "negative": [
+    "38",
+    0
+   ],
+   "latent_image": [
+    "150",
+    0
+   ],
+   "add_noise": "enable",
+   "noise_seed": 777,
+   "steps": 8,
+   "cfg": 1,
+   "sampler_name": "euler_ancestral_cfg_pp",
+   "scheduler": "simple",
+   "start_at_step": 5,
+   "end_at_step": 10000,
+   "return_with_leftover_noise": "disable"
+  },
+  "class_type": "KSamplerAdvanced",
+  "_meta": {
+   "title": "KSamplerAdvanced"
+  }
+ },
+ "150": {
+  "inputs": {
+   "model": [
+    "28",
+    0
+   ],
+   "positive": [
+    "42",
+    0
+   ],
+   "negative": [
+    "194",
+    0
+   ],
+   "latent_image": [
+    "35",
+    0
+   ],
+   "add_noise": "enable",
+   "noise_seed": 777,
+   "steps": 8,
+   "cfg": 1,
+   "sampler_name": "euler_ancestral_cfg_pp",
+   "scheduler": "simple",
+   "start_at_step": 3,
+   "end_at_step": 5,
+   "return_with_leftover_noise": "disable"
+  },
+  "class_type": "KSamplerAdvanced",
+  "_meta": {
+   "title": "KSamplerAdvanced"
+  }
+ },
+ "34": {
+  "inputs": {
+   "image": [
+    "33",
+    0
+   ],
+   "width": 2048,
+   "height": 2048,
+   "upscale_method": "lanczos",
+   "keep_proportion": "total_pixels",
+   "pad_color": "0, 0, 0",
+   "crop_position": "center",
+   "divisible_by": 16,
+   "device": "cpu"
+  },
+  "class_type": "ImageResizeKJv2",
+  "_meta": {
+   "title": "ImageResizeKJv2"
+  }
+ },
+ "192": {
+  "inputs": {
+   "any_01": [
+    "34",
+    0
+   ]
+  },
+  "class_type": "Any Switch (rgthree)",
+  "_meta": {
+   "title": "Any Switch (rgthree)"
+  }
+ },
+ "42": {
+  "inputs": {
+   "anything": [
+    "37",
+    0
+   ]
+  },
+  "class_type": "easy cleanGpuUsed",
+  "_meta": {
+   "title": "easy cleanGpuUsed"
+  }
+ },
+ "38": {
+  "inputs": {
+   "conditioning": [
+    "21",
+    0
+   ],
+   "latent": [
+    "35",
+    0
+   ]
+  },
+  "class_type": "ReferenceLatent",
+  "_meta": {
+   "title": "ReferenceLatent"
+  }
+ },
+ "21": {
+  "inputs": {
+   "clip": [
+    "26",
+    0
+   ],
+   "text": "low quality, blurry, chaos, disorder"
+  },
+  "class_type": "CLIPTextEncode",
+  "_meta": {
+   "title": "CLIP Text Encode (Negative Prompt)"
+  }
+ },
+ "194": {
+  "inputs": {
+   "anything": [
+    "38",
+    0
+   ]
+  },
+  "class_type": "easy cleanGpuUsed",
+  "_meta": {
+   "title": "easy cleanGpuUsed"
+  }
+ },
+ "26": {
+  "inputs": {
+   "clip_name": "qwen_3_8b_fp8mixed.safetensors",
+   "type": "flux2",
+   "device": "default"
+  },
+  "class_type": "CLIPLoader",
+  "_meta": {
+   "title": "CLIPLoader"
+  }
+ },
+ "27": {
+  "inputs": {
+   "vae_name": "flux2_vae.safetensors"
+  },
+  "class_type": "VAELoader",
+  "_meta": {
+   "title": "VAELoader"
+  }
+ },
+ "109": {
+  "inputs": {
+   "image": [
+    "192",
+    0
+   ],
+   "upscale_model": [
+    "110",
+    0
+   ],
+   "tile_width": 2048,
+   "tile_height": 2048,
+   "min_overlap": "1/2 Tile",
+   "min_scale_factor": [
+    "103",
+    1
+   ],
+   "tile_order": "linear",
+   "scaling_method": "lanczos",
+   "use_upscale_with_model": true
+  },
+  "class_type": "Divide and Conquer Algorithm",
+  "_meta": {
+   "title": "Divide and Conquer Algorithm"
+  }
+ },
+ "115": {
+  "inputs": {
+   "images": [
+    "101",
+    0
+   ],
+   "filename_prefix": "KleinTileUpscale-"
+  },
+  "class_type": "SaveImage",
+  "_meta": {
+   "title": "SaveImage"
+  }
+ },
+ "107": {
+  "inputs": {
+   "value": 4000
+  },
+  "class_type": "PrimitiveInt",
+  "_meta": {
+   "title": "WIDTH SCALE"
+  }
+ },
+ "9": {
+  "inputs": {
+   "unet_name": "flux-2-klein-9b-nvfp4.safetensors",
+   "weight_dtype": "default"
+  },
+  "class_type": "UNETLoader",
+  "_meta": {
+   "title": "UNETLoader"
+  }
+ },
+ "33": {
+  "inputs": {
+   "image": "ComfyUI_00060_.png",
+   "upload": "image"
+  },
+  "class_type": "LoadImage",
+  "_meta": {
+   "title": "LoadImage"
+  }
+ }
+}

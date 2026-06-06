@@ -1,19 +1,68 @@
-# Lightweight ComfyUI worker — models live on a RunPod network volume (/runpod-volume),
-# NOT baked into the image. This keeps the image small and the build fast/reliable.
-FROM runpod/worker-comfyui:5.8.4-base
+# Custom worker-comfyui build for Flux.2 Klein tile-upscale.
+# Stack pinned to match the user's known-good local setup:
+#   Python 3.13 + Torch 2.9.0 + CUDA 13.0 + SageAttention (built from source for Blackwell sm_120).
+# Models live on a RunPod network volume (/runpod-volume/models/{unet,clip,vae,upscale_models}).
+FROM nvidia/cuda:13.0.3-cudnn-devel-ubuntu24.04 AS base
 
-# install custom nodes into comfyui (same set as the original, pinned where possible)
-RUN comfy node install --exit-on-fail comfyui-gguf@1.1.10 --mode remote || (echo "WARN: comfyui-gguf@1.1.10 unavailable in registry, falling back to latest" >&2 && comfy node install --exit-on-fail comfyui-gguf --mode remote)
-RUN comfy node install --exit-on-fail rgthree-comfy@1.0.2512112053 || (echo "WARN: rgthree-comfy@1.0.2512112053 unavailable in registry, falling back to latest" >&2 && comfy node install --exit-on-fail rgthree-comfy)
-# Steudio: pin to latest (v2.0.5) — the workflow (KleinUpscaler.json) uses the new
-# Divide and Conquer node signature (use_upscale_with_model param, 3 outputs incl. ui).
-# The old pinned commit had an incompatible signature and broke the graph silently.
+ENV DEBIAN_FRONTEND=noninteractive
+ENV PIP_PREFER_BINARY=1
+ENV PYTHONUNBUFFERED=1
+ENV CMAKE_BUILD_PARALLEL_LEVEL=8
+
+# Python 3.13 (deadsnakes) + system deps
+RUN apt-get update && apt-get install -y software-properties-common \
+    && add-apt-repository -y ppa:deadsnakes/ppa && apt-get update \
+    && apt-get install -y \
+        python3.13 python3.13-venv python3.13-dev \
+        git wget curl \
+        libgl1 libglib2.0-0 libsm6 libxext6 libxrender1 ffmpeg \
+        openssh-server build-essential ninja-build \
+    && apt-get autoremove -y && apt-get clean -y && rm -rf /var/lib/apt/lists/*
+
+# uv + isolated venv on Python 3.13
+RUN wget -qO- https://astral.sh/uv/install.sh | sh \
+    && ln -s /root/.local/bin/uv /usr/local/bin/uv \
+    && ln -s /root/.local/bin/uvx /usr/local/bin/uvx \
+    && uv venv --python 3.13 /opt/venv
+ENV PATH="/opt/venv/bin:${PATH}"
+
+# comfy-cli to install ComfyUI
+RUN uv pip install comfy-cli pip setuptools wheel
+
+# Install ComfyUI (latest). Torch gets overridden to cu130 right after.
+RUN /usr/bin/yes | comfy --workspace /comfyui install --version latest --nvidia
+
+# Pin Torch 2.9.0 / CUDA 13.0
+RUN uv pip install --force-reinstall \
+    torch==2.9.0 torchvision torchaudio --index-url https://download.pytorch.org/whl/cu130
+
+# SageAttention from source (PyPI only has 1.0.x; need 2.x for Blackwell sm_120).
+# nvcc comes from the cuda devel base image.
+ENV TORCH_CUDA_ARCH_LIST="12.0"
+RUN uv pip install --no-build-isolation git+https://github.com/thu-ml/SageAttention.git \
+    || (echo "WARN: SageAttention source build failed, falling back to PyPI" >&2 && uv pip install sageattention)
+
+# Network-volume model path mapping (unet/clip/vae/upscale_models -> /runpod-volume/models/...)
+WORKDIR /comfyui
+ADD src/extra_model_paths.yaml ./
+WORKDIR /
+
+# Handler runtime deps + app code
+RUN uv pip install runpod requests websocket-client
+ADD src/start.sh src/network_volume.py handler.py test_input.json ./
+RUN chmod +x /start.sh
+COPY scripts/comfy-node-install.sh /usr/local/bin/comfy-node-install
+RUN chmod +x /usr/local/bin/comfy-node-install
+COPY scripts/comfy-manager-set-mode.sh /usr/local/bin/comfy-manager-set-mode
+RUN chmod +x /usr/local/bin/comfy-manager-set-mode
+ENV PIP_NO_INPUT=1
+
+# Custom nodes required by the workflow (no models baked in)
+RUN comfy node install --exit-on-fail rgthree-comfy || comfy node install rgthree-comfy
 RUN git clone https://github.com/Steudio/ComfyUI_Steudio /comfyui/custom_nodes/ComfyUI_Steudio
-# NOTE: comfyui-crystools removed — its "Get resolution" node failed to load and is not
-# needed: the workflow's image-width lookup uses KJNodes' GetImageSizeAndCount instead.
-RUN comfy node install --exit-on-fail comfyui-custom-scripts@1.2.5 || (echo "WARN: comfyui-custom-scripts@1.2.5 unavailable in registry, falling back to latest" >&2 && comfy node install --exit-on-fail comfyui-custom-scripts)
-RUN comfy node install --exit-on-fail comfyui-easy-use@1.3.1 || (echo "WARN: comfyui-easy-use@1.3.1 unavailable in registry, falling back to latest" >&2 && comfy node install --exit-on-fail comfyui-easy-use)
-RUN git clone https://github.com/kijai/ComfyUI-KJNodes /comfyui/custom_nodes/ComfyUI-KJNodes && cd /comfyui/custom_nodes/ComfyUI-KJNodes && (git checkout f91daf93293ab7fb28836159595a5b088c86313a 2>/dev/null || (git fetch origin f91daf93293ab7fb28836159595a5b088c86313a --depth=1 && git checkout f91daf93293ab7fb28836159595a5b088c86313a) || echo "WARN: commit f91daf93293ab7fb28836159595a5b088c86313a unreachable in https://github.com/kijai/ComfyUI-KJNodes, falling back to default branch HEAD")
+RUN git clone https://github.com/kijai/ComfyUI-KJNodes /comfyui/custom_nodes/ComfyUI-KJNodes \
+    && (uv pip install -r /comfyui/custom_nodes/ComfyUI-KJNodes/requirements.txt || true)
+RUN comfy node install --exit-on-fail comfyui-custom-scripts || comfy node install comfyui-custom-scripts
+RUN comfy node install --exit-on-fail comfyui-easy-use || comfy node install comfyui-easy-use
 
-# NOTE: models are served from the attached network volume at /runpod-volume/models/...
-# worker-comfyui 5.8.4 auto-detects them; nothing is downloaded at build time.
+CMD ["/start.sh"]
