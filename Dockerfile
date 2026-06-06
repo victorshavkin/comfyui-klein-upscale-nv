@@ -36,9 +36,12 @@ RUN /usr/bin/yes | comfy --workspace /comfyui install --version latest --nvidia
 # asset-DB needs sqlalchemy/alembic). This may pull a default torch — overridden next.
 RUN uv pip install -r /comfyui/requirements.txt
 
-# Pin Torch 2.9.0 / CUDA 13.0 (after requirements, so it wins)
+# Pin the WHOLE torch stack to matching cu130 builds (after requirements, so it wins).
+# torchaudio/torchvision must match torch exactly or you get
+# "undefined symbol: torch_library_impl" at ComfyUI startup.
 RUN uv pip install --force-reinstall \
-    torch==2.9.0 torchvision torchaudio --index-url https://download.pytorch.org/whl/cu130
+    torch==2.9.0 torchvision==0.24.0 torchaudio==2.9.0 \
+    --index-url https://download.pytorch.org/whl/cu130
 
 # SageAttention from source (PyPI only has 1.0.x; need 2.x for Blackwell sm_120).
 # nvcc comes from the cuda devel base image.
