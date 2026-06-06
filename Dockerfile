@@ -5,8 +5,12 @@ FROM runpod/worker-comfyui:5.8.4-base
 # install custom nodes into comfyui (same set as the original, pinned where possible)
 RUN comfy node install --exit-on-fail comfyui-gguf@1.1.10 --mode remote || (echo "WARN: comfyui-gguf@1.1.10 unavailable in registry, falling back to latest" >&2 && comfy node install --exit-on-fail comfyui-gguf --mode remote)
 RUN comfy node install --exit-on-fail rgthree-comfy@1.0.2512112053 || (echo "WARN: rgthree-comfy@1.0.2512112053 unavailable in registry, falling back to latest" >&2 && comfy node install --exit-on-fail rgthree-comfy)
-RUN comfy node install --exit-on-fail comfyui-crystools@1.22.1 || (echo "WARN: comfyui-crystools@1.22.1 unavailable in registry, falling back to latest" >&2 && comfy node install --exit-on-fail comfyui-crystools)
-RUN git clone https://github.com/Steudio/ComfyUI_Steudio /comfyui/custom_nodes/ComfyUI_Steudio && cd /comfyui/custom_nodes/ComfyUI_Steudio && (git checkout 368b98166584db24beb095c96a2bad9fb442235b 2>/dev/null || (git fetch origin 368b98166584db24beb095c96a2bad9fb442235b --depth=1 && git checkout 368b98166584db24beb095c96a2bad9fb442235b) || echo "WARN: commit 368b98166584db24beb095c96a2bad9fb442235b unreachable in https://github.com/Steudio/ComfyUI_Steudio, falling back to default branch HEAD")
+# Steudio: pin to latest (v2.0.5) — the workflow (KleinUpscaler.json) uses the new
+# Divide and Conquer node signature (use_upscale_with_model param, 3 outputs incl. ui).
+# The old pinned commit had an incompatible signature and broke the graph silently.
+RUN git clone https://github.com/Steudio/ComfyUI_Steudio /comfyui/custom_nodes/ComfyUI_Steudio
+# NOTE: comfyui-crystools removed — its "Get resolution" node failed to load and is not
+# needed: the workflow's image-width lookup uses KJNodes' GetImageSizeAndCount instead.
 RUN comfy node install --exit-on-fail comfyui-custom-scripts@1.2.5 || (echo "WARN: comfyui-custom-scripts@1.2.5 unavailable in registry, falling back to latest" >&2 && comfy node install --exit-on-fail comfyui-custom-scripts)
 RUN comfy node install --exit-on-fail comfyui-easy-use@1.3.1 || (echo "WARN: comfyui-easy-use@1.3.1 unavailable in registry, falling back to latest" >&2 && comfy node install --exit-on-fail comfyui-easy-use)
 RUN git clone https://github.com/kijai/ComfyUI-KJNodes /comfyui/custom_nodes/ComfyUI-KJNodes && cd /comfyui/custom_nodes/ComfyUI-KJNodes && (git checkout f91daf93293ab7fb28836159595a5b088c86313a 2>/dev/null || (git fetch origin f91daf93293ab7fb28836159595a5b088c86313a --depth=1 && git checkout f91daf93293ab7fb28836159595a5b088c86313a) || echo "WARN: commit f91daf93293ab7fb28836159595a5b088c86313a unreachable in https://github.com/kijai/ComfyUI-KJNodes, falling back to default branch HEAD")
