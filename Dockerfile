@@ -54,7 +54,7 @@ ENV PATH=/usr/local/cuda/bin:${PATH}
 ENV TORCH_CUDA_ARCH_LIST=12.0
 RUN uv pip install setuptools wheel && \
     git clone https://github.com/thu-ml/SageAttention.git /tmp/sage && \
-    cd /tmp/sage && MAX_JOBS=8 python setup.py install && \
+    cd /tmp/sage && MAX_JOBS=4 python setup.py install && \
     cd / && rm -rf /tmp/sage
 
 # Network-volume model path mapping (unet/clip/vae/upscale_models -> /runpod-volume/models/...)
