@@ -43,11 +43,19 @@ RUN uv pip install --force-reinstall \
     torch==2.9.0 torchvision==0.24.0 torchaudio==2.9.0 \
     --index-url https://download.pytorch.org/whl/cu130
 
-# SageAttention 2.2.0 from source — exact version that works in the user's local
-# setup (sageattention-2.2.0.post3+cu130torch2.9). PyPI only has 1.0.x; build the
-# v2.2.0 git tag. nvcc comes from the cuda devel base; sm_120 for Blackwell.
-ENV TORCH_CUDA_ARCH_LIST="12.0"
-RUN uv pip install --no-build-isolation git+https://github.com/thu-ml/SageAttention.git@v2.2.0
+# SageAttention from source, compiled for Blackwell (sm_120).
+# CRITICAL: nvcc + CUDA_HOME must be on PATH, and the build must run via
+# `python setup.py install` — `uv pip install git+...` does NOT propagate
+# TORCH_CUDA_ARCH_LIST to the build subprocess, so it silently builds only
+# sm80/sm89 and you get "CUDA error: no kernel image" on RTX 5090 at runtime.
+# Verified on a Blackwell pod: this recipe makes sageattn/qk_int8_pv_fp8 work on sm_120.
+ENV CUDA_HOME=/usr/local/cuda
+ENV PATH=/usr/local/cuda/bin:${PATH}
+ENV TORCH_CUDA_ARCH_LIST=12.0
+RUN uv pip install setuptools wheel && \
+    git clone https://github.com/thu-ml/SageAttention.git /tmp/sage && \
+    cd /tmp/sage && MAX_JOBS=8 python setup.py install && \
+    cd / && rm -rf /tmp/sage
 
 # Network-volume model path mapping (unet/clip/vae/upscale_models -> /runpod-volume/models/...)
 WORKDIR /comfyui
