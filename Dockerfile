@@ -68,8 +68,8 @@ WORKDIR /comfyui
 ADD src/extra_model_paths.yaml ./
 WORKDIR /
 
-# Handler runtime deps
-RUN uv pip install runpod requests websocket-client
+# Handler runtime deps (boto3 for direct RunPod S3 upload of results)
+RUN uv pip install runpod requests websocket-client boto3
 
 # Custom nodes required by the workflow (no models baked in)
 RUN comfy node install --exit-on-fail rgthree-comfy || comfy node install rgthree-comfy
@@ -104,7 +104,7 @@ COPY --from=builder /root/.local/bin/uv /usr/local/bin/uv
 ENV PATH="/opt/venv/bin:${PATH}"
 
 # App code + helper scripts
-ADD src/start.sh src/network_volume.py handler.py test_input.json ./
+ADD src/start.sh src/network_volume.py src/runpod_s3.py handler.py test_input.json ./
 RUN chmod +x /start.sh
 COPY scripts/comfy-node-install.sh /usr/local/bin/comfy-node-install
 COPY scripts/comfy-manager-set-mode.sh /usr/local/bin/comfy-manager-set-mode

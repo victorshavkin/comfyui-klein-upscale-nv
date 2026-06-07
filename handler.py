@@ -19,6 +19,7 @@ from network_volume import (
     is_network_volume_debug_enabled,
     run_network_volume_diagnostics,
 )
+from runpod_s3 import upload_to_runpod_s3
 
 # ---------------------------------------------------------------------------
 # Logging setup
@@ -789,7 +790,9 @@ def handler(job):
                                 )
 
                                 print(f"worker-comfyui - Uploading {filename} to S3...")
-                                s3_url = rp_upload.upload_image(job_id, temp_file_path)
+                                s3_url = upload_to_runpod_s3(
+                                    job_id, temp_file_path, file_extension
+                                )
                                 os.remove(temp_file_path)  # Clean up temp file
                                 print(
                                     f"worker-comfyui - Uploaded {filename} to S3: {s3_url}"
